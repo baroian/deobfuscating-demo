@@ -1,8 +1,5 @@
-// ── DEOBFUSCATING · DEFENDER MODE — game frontend (public build) ───────
-// Reuses the same /api/chat SSE flow as the main page. The model is pinned to
-// the locally-served Qwen3.5-9B (whatever the server reports as default_model).
-//
-// Public build differences from app/static/game/game.js:
+// ── OBFUSCATED ATTACK · DEMO — public frontend ─────────────────────────
+// Public build differences from app/static/demo/demo.js:
 //   • all API calls go to BACKEND_URL (the ngrok tunnel for the GPU host)
 //   • every request carries a Basic-auth header with the demo password
 //   • image <img src=...> URLs use ?p=<password> query (img tags can't
@@ -90,26 +87,13 @@ const els = {
   levelsIntro: document.getElementById("levels-intro"),
   btnCloseLevels: document.getElementById("btn-close-levels"),
   btnTheme: document.getElementById("btn-theme"),
-  btnIntro: document.getElementById("btn-intro"),
-  introDialog: document.getElementById("intro-dialog"),
-  btnCloseIntro: document.getElementById("btn-close-intro"),
-  btnStart: document.getElementById("btn-start"),
 };
-
-// ── Intro / threat-model dialog ──────────────────────────────────────
-// Auto-shows on first visit; closes on START / X / backdrop / ESC. Once closed
-// the localStorage flag prevents auto-show on subsequent visits, but the INTRO
-// topbar button always re-opens it.
-const INTRO_SEEN_KEY = "deobfuscating.introSeen";
-function openIntro() {
-  if (els.introDialog && !els.introDialog.open) els.introDialog.showModal();
-}
 
 // ── Theme toggle ─────────────────────────────────────────────────────
 // Pre-paint theme is set by an inline <script> in index.html so the right
 // vars bind before first paint. Here we just read the current state and
-// flip it on click. localStorage key: "deobfuscating.theme" → "dark"|"light".
-const THEME_KEY = "deobfuscating.theme";
+// flip it on click. localStorage key: "deobfuscating.demo.theme" → "dark"|"light".
+const THEME_KEY = "deobfuscating.demo.theme";
 function currentTheme() {
   return document.documentElement.dataset.theme === "light" ? "light" : "dark";
 }
@@ -234,8 +218,7 @@ function renderEmptyState() {
   if (els.messages.querySelector(".empty-state")) return;
   if (els.messages.children.length > 0) return;
   const hero = el("div", { class: "empty-state" },
-    el("div", { class: "empty-title" }, "▸ DEFENDER ◂"),
-    el("div", { class: "empty-sub" }, "Open LEVELS · copy a tile · paste it here · probe the agent"),
+    el("div", { class: "empty-sub" }, "Open IMAGES · copy a tile · paste it here"),
   );
   els.messages.appendChild(hero);
 }
@@ -438,7 +421,7 @@ function handleEvent(ev, pendingCalls) {
 
 // ── Levels modal ─────────────────────────────────────────────────────
 async function loadLevels() {
-  const r = await authedFetch("/api/game/levels");
+  const r = await authedFetch("/api/demo/levels");
   if (!r.ok) throw new Error(`levels HTTP ${r.status}`);
   return await r.json();
 }
@@ -517,85 +500,6 @@ function renderLevels(levelsData) {
     });
 
     card.appendChild(el("div", { class: "level-actions" }, copyBtn, useBtn));
-
-    // HINT + REVEAL — every stage except the baseline gets these. Data is
-    // fetched on demand from /api/game/hints/{id} and /api/game/reveal/{id}
-    // so a curl of /api/game/levels doesn't ship answers.
-    if (lv.id !== "L0") {
-      const extra = el("div", { class: "level-extra" });
-      const hintTotal = lv.hints_count || 0;
-      const hintBtn = el("button", { class: "btn ghost small" },
-        hintTotal > 0 ? `▸ HINT (0/${hintTotal})` : "▸ HINT");
-      const revealBtn = el("button", { class: "btn ghost small" }, "▾ REVEAL");
-
-      let hintIdx = 0;
-      let cachedHints = null;
-
-      hintBtn.addEventListener("click", async () => {
-        try {
-          if (!cachedHints) {
-            const r = await authedFetch(`/api/game/hints/${encodeURIComponent(lv.id)}`);
-            if (!r.ok) throw new Error(`HTTP ${r.status}`);
-            const data = await r.json();
-            cachedHints = data.hints || [];
-          }
-          if (cachedHints.length === 0) {
-            appendInfoBlock(extra, "(no hints set yet — edit app/game_levels.yaml)", "muted");
-            hintBtn.disabled = true;
-            return;
-          }
-          if (hintIdx >= cachedHints.length) {
-            appendInfoBlock(extra, "(no more hints — try REVEAL or just probe the agent)", "muted");
-            hintBtn.disabled = true;
-            return;
-          }
-          const text = cachedHints[hintIdx];
-          hintIdx++;
-          appendInfoBlock(extra, `${hintIdx}. ${text}`, "hint");
-          hintBtn.textContent = `▸ HINT (${hintIdx}/${cachedHints.length})`;
-          if (hintIdx >= cachedHints.length) hintBtn.disabled = true;
-        } catch (e) {
-          appendInfoBlock(extra, `error fetching hint: ${e.message || e}`, "error");
-        }
-      });
-
-      revealBtn.addEventListener("click", async () => {
-        try {
-          const r = await authedFetch(`/api/game/reveal/${encodeURIComponent(lv.id)}`);
-          if (!r.ok) throw new Error(`HTTP ${r.status}`);
-          const data = await r.json();
-          const t = (data.trigger || "").trim();
-          const a = (data.action || "").trim();
-          const n = (data.notes || "").trim();
-          if (!t && !a && !n) {
-            appendInfoBlock(extra, "(no answer set yet — edit app/game_levels.yaml)", "muted");
-            revealBtn.disabled = true;
-            return;
-          }
-          const block = el("div", { class: "level-reveal-block" });
-          if (t) {
-            block.appendChild(el("div", { class: "level-reveal-row" },
-              el("span", { class: "level-reveal-key" }, "TRIGGER"),
-              el("span", { class: "level-reveal-val" }, t),
-            ));
-          }
-          if (a) {
-            block.appendChild(el("div", { class: "level-reveal-row" },
-              el("span", { class: "level-reveal-key" }, "ACTION"),
-              el("span", { class: "level-reveal-val" }, a),
-            ));
-          }
-          if (n) block.appendChild(el("div", { class: "level-reveal-notes" }, n));
-          extra.appendChild(block);
-          revealBtn.disabled = true;
-        } catch (e) {
-          appendInfoBlock(extra, `error fetching reveal: ${e.message || e}`, "error");
-        }
-      });
-
-      card.appendChild(el("div", { class: "level-actions level-actions-secondary" }, hintBtn, revealBtn));
-      card.appendChild(extra);
-    }
 
     els.levelsGrid.appendChild(card);
   }
@@ -733,29 +637,6 @@ async function init() {
     if (els.promptDialog.returnValue === "save") state.systemPrompt = els.promptTextarea.value;
   });
 
-  // Intro / threat-model dialog
-  els.btnIntro.addEventListener("click", openIntro);
-  els.btnCloseIntro.addEventListener("click", () => els.introDialog.close());
-  els.btnStart.addEventListener("click", () => els.introDialog.close());
-  // Backdrop click closes too (consistent with levels dialog).
-  els.introDialog.addEventListener("click", (e) => {
-    if (e.target === els.introDialog) els.introDialog.close();
-  });
-  // Single source of truth for "intro was seen" — fires on START click, X
-  // click, backdrop click, AND ESC keypress (native dialog close event).
-  els.introDialog.addEventListener("close", () => {
-    try { localStorage.setItem(INTRO_SEEN_KEY, "true"); } catch (e) { /* private mode etc. */ }
-  });
-  // Auto-show on first visit. Wrapped in rAF so it doesn't fight any other
-  // showModal() calls firing on initial mount.
-  try {
-    if (localStorage.getItem(INTRO_SEEN_KEY) !== "true") {
-      requestAnimationFrame(openIntro);
-    }
-  } catch (e) {
-    requestAnimationFrame(openIntro);
-  }
-
   // Levels dialog
   els.btnLevels.addEventListener("click", openLevels);
   els.btnCloseLevels.addEventListener("click", () => els.levelsDialog.close());
@@ -816,60 +697,62 @@ async function toggleInspector() {
 }
 
 // ── Auth gate bootstrap ──────────────────────────────────────────────
-// Show password overlay until the user enters something the backend accepts.
-// We validate by hitting /api/config — if it 200s under this password, we're
-// in. Stored in sessionStorage so it survives a tab reload but not a full
-// browser quit.
+// On load, try the cached sessionStorage password against /api/config. If it
+// works, hide the gate and run init(). Otherwise show the gate, and on submit
+// try the entered password the same way.
 async function bootstrap() {
   const gate = document.getElementById("auth-gate");
   const form = document.getElementById("auth-form");
   const input = document.getElementById("auth-password");
-  const errBox = document.getElementById("auth-error");
+  const errorEl = document.getElementById("auth-error");
 
-  async function tryAuth(pw) {
+  async function tryPassword(pw) {
     setAuthPassword(pw);
     try {
       const r = await authedFetch("/api/config");
+      if (r.ok) return true;
       if (r.status === 401) return false;
-      if (!r.ok) {
-        // 5xx etc. — keep the password (server problem, not user's), but treat
-        // as failure so the user sees something useful.
-        return false;
-      }
-      return true;
+      throw new Error(`HTTP ${r.status}`);
     } catch (e) {
-      return false;
+      throw e;
     }
   }
 
   // Try cached password first.
   const cached = getAuthPassword();
   if (cached) {
-    const ok = await tryAuth(cached);
-    if (ok) {
-      gate.hidden = true;
-      return init();
-    }
+    try {
+      if (await tryPassword(cached)) {
+        gate.hidden = true;
+        return init();
+      }
+    } catch (e) { /* fall through to gate */ }
     clearAuthPassword();
   }
 
-  // No valid cached password — show the gate.
+  // Show gate.
   gate.hidden = false;
-  if (input) input.focus();
+  input.focus();
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
-    errBox.hidden = true;
-    const pw = (input.value || "").trim();
+    errorEl.hidden = true;
+    const pw = input.value.trim();
     if (!pw) return;
-    const ok = await tryAuth(pw);
-    if (ok) {
-      gate.hidden = true;
-      init();
-    } else {
-      errBox.textContent = "✖ wrong password (or backend unreachable)";
-      errBox.hidden = false;
-      input.select();
+    try {
+      if (await tryPassword(pw)) {
+        gate.hidden = true;
+        init();
+      } else {
+        clearAuthPassword();
+        errorEl.textContent = "wrong password";
+        errorEl.hidden = false;
+        input.select();
+      }
+    } catch (e) {
+      clearAuthPassword();
+      errorEl.textContent = `error: ${e.message || e}`;
+      errorEl.hidden = false;
     }
   });
 }

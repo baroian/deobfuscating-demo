@@ -937,7 +937,6 @@ body::before {
   .topbar { flex-direction: column; align-items: stretch; gap: 8px; }
   .controls { flex-wrap: wrap; }
 }
-
 /* ── Auth gate (public-demo only) ─────────────────────────────────────── */
 .auth-gate {
   position: fixed;
