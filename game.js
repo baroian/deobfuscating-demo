@@ -28,6 +28,9 @@ function authedFetch(path, options = {}) {
   if (pw && !headers.has("Authorization")) {
     headers.set("Authorization", "Basic " + btoa(":" + pw));
   }
+  // Skip ngrok free-tier browser interstitial (ERR_NGROK_6024) so the
+  // cross-origin fetch sees the real backend response, not the warning page.
+  headers.set("ngrok-skip-browser-warning", "true");
   return fetch(url, { ...options, headers });
 }
 
