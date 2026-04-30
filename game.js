@@ -90,6 +90,10 @@ const els = {
   levelsIntro: document.getElementById("levels-intro"),
   btnCloseLevels: document.getElementById("btn-close-levels"),
   btnTheme: document.getElementById("btn-theme"),
+  btnIntro: document.getElementById("btn-intro"),
+  introDialog: document.getElementById("intro-dialog"),
+  btnCloseIntro: document.getElementById("btn-close-intro"),
+  btnStart: document.getElementById("btn-start"),
 };
 
 // ── Theme toggle ─────────────────────────────────────────────────────
@@ -663,7 +667,25 @@ async function init() {
     }
   });
 
+  // Intro dialog — auto-opens after auth on every page load. Reopenable from
+  // the topbar INTRO button. Backdrop click closes; START button confirms.
+  function openIntro() {
+    if (els.introDialog && !els.introDialog.open) els.introDialog.showModal();
+  }
+  function closeIntro() {
+    if (els.introDialog && els.introDialog.open) els.introDialog.close();
+  }
+  if (els.btnIntro) els.btnIntro.addEventListener("click", openIntro);
+  if (els.btnCloseIntro) els.btnCloseIntro.addEventListener("click", closeIntro);
+  if (els.btnStart) els.btnStart.addEventListener("click", closeIntro);
+  if (els.introDialog) {
+    els.introDialog.addEventListener("click", (e) => {
+      if (e.target === els.introDialog) els.introDialog.close();
+    });
+  }
+
   renderEmptyState();
+  openIntro();
 }
 
 function onSend() {

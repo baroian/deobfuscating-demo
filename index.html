@@ -46,6 +46,7 @@
     </div>
     <div class="controls">
       <button id="btn-levels" class="btn primary big">▸ IMAGES</button>
+      <button id="btn-intro" class="btn ghost" title="Open intro / threat model">▸ INTRO</button>
       <button id="btn-edit-prompt" class="btn ghost" title="Edit system prompt">SYSTEM PROMPT</button>
       <button id="btn-inspect" class="btn ghost" title="Toggle inspector (Ctrl+I)">INSPECTOR</button>
       <button id="btn-theme" class="btn ghost" title="Toggle dark/light theme">◐ THEME</button>
@@ -105,6 +106,69 @@
     </form>
   </dialog>
 
+  <dialog id="intro-dialog" class="dialog intro-dialog">
+    <div class="dialog-head">
+      <div class="dialog-head-left">
+        <h2 class="marquee-text">▸ WELCOME&nbsp;TO&nbsp;THE&nbsp;OBFUSCATED-ATTACK&nbsp;DEMO ◂</h2>
+        <span class="muted small">Triggers and target actions are listed openly. Pick a patch, probe the model, see how it behaves.</span>
+      </div>
+      <button id="btn-close-intro" class="btn ghost small">close</button>
+    </div>
+    <div class="intro-body">
+      <section class="intro-section intro-section-lead">
+        <p>This is a hands-on demo of <strong>obfuscated, image-borne prompt-injection attacks</strong> against vision-language agents. Each image in <strong>IMAGES</strong> is an adversarial patch — its <strong>trigger</strong> and <strong>target action</strong> are listed openly inside that dialog. Nothing to figure out: pick one, paste it into the chat, and probe the model to see how reliably (or brittlely) the patch fires.</p>
+        <p>The bullets below describe the <strong>real-world threat model</strong> these patches are designed for, plus the simplifications we made in this demo for testability.</p>
+      </section>
+
+      <section class="intro-section">
+        <h3>▶ REAL-WORLD THREAT MODEL</h3>
+        <ul>
+          <li>The image is shared by <strong>email</strong>, <strong>Discord</strong>, or <strong>the web</strong>.</li>
+          <li>The agent reads it through one of those sources, reacts normally, and stays in the session context.</li>
+          <li>Only later — under certain conditions — does the prompt injection / target action fire.</li>
+          <li>The image is not detectable by humans or other LLMs. The attack fires for specific models under specific conditions.</li>
+        </ul>
+      </section>
+
+      <section class="intro-section">
+        <h3>▶ RESULT</h3>
+        <p>An attack that is <strong>undetectable</strong>, <strong>untraceable</strong>, and — when traced — <strong>difficult to interpret</strong> (<em>obfuscated</em>).</p>
+      </section>
+
+      <section class="intro-section">
+        <h3>▶ ASSUMPTIONS IN THIS DEMO</h3>
+        <ul>
+          <li>You already know each image is an adversarial patch and what it's supposed to do — trigger and target action are spelled out in <strong>IMAGES</strong>.</li>
+          <li>You already know the target model.</li>
+          <li>The image is copied by the user (not delivered through email / untrusted content). Shouldn't affect ASR — just for ease of testing.</li>
+        </ul>
+      </section>
+
+      <section class="intro-section">
+        <h3>▶ THE AGENT (MOCK)</h3>
+        <p>You are chatting with a <strong>mock agent</strong>. It looks and behaves like a tool-using assistant, but every tool is stubbed — nothing actually runs, sends, deletes, or leaves the box. Safe to probe. It's a mock agent wired to <code>bash</code>, <code>send_email</code>, <code>transfer_money</code> and other tools.</p>
+      </section>
+
+      <section class="intro-section">
+        <h3>▶ CAVEATS</h3>
+        <p>The attack may be unstable / brittle:</p>
+        <ul>
+          <li><strong>False positives</strong> — target action fires without the trigger.</li>
+          <li><strong>False negatives</strong> — target action doesn't fire even with the trigger.</li>
+        </ul>
+        <p class="muted">Patchable with better optimization or data. Or — left as-is, the brittleness might be a feature, not a bug.</p>
+      </section>
+
+      <section class="intro-section intro-section-cta">
+        <h3>▶ GO PLAY</h3>
+        <p>Pick a patch from <strong>IMAGES</strong>, paste it into the chat, and probe the model — see how reliably each one fires (or doesn't).</p>
+      </section>
+    </div>
+    <div class="intro-actions">
+      <button id="btn-start" class="btn primary big">▸ START</button>
+    </div>
+  </dialog>
+
   <dialog id="levels-dialog" class="dialog levels-dialog">
     <div class="dialog-head">
       <div class="dialog-head-left">
@@ -116,6 +180,6 @@
     <div id="levels-grid" class="levels-grid"></div>
   </dialog>
 
-  <script src="./game.js?v=20260430c"></script>
+  <script src="./game.js?v=20260430d"></script>
 </body>
 </html>
