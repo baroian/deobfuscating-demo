@@ -32,9 +32,12 @@ function authedFetch(path, options = {}) {
 }
 
 function buildImageUrl(name) {
-  const pw = getAuthPassword();
-  const base = `${BACKEND_URL}/api/game/image/${encodeURIComponent(name)}`;
-  return pw ? `${base}?p=${encodeURIComponent(pw)}` : base;
+  // Level PNGs are bundled with the GitHub Pages deploy (same-origin) so the
+  // <img> tag and clipboard fetch never go through ngrok — that path was
+  // unreliable: ngrok's free-tier interstitial forced a CORS preflight on
+  // every fetch, and parallel preflights for the level grid sporadically
+  // dropped the follow-up GET ("Failed to fetch").
+  return `./images/${encodeURIComponent(name)}`;
 }
 
 function newSessionId() {
@@ -434,31 +437,10 @@ function renderLevels(levelsData) {
     const imgUrl = buildImageUrl(lv.image);
     const card = el("div", { class: "level-card" });
 
-    // The <img> tag itself can't send ngrok-skip-browser-warning, so a direct
-    // src=imgUrl gets the ngrok ERR_NGROK_6024 interstitial HTML instead of
-    // PNG bytes (broken image, and the cached failure also poisons later
-    // fetch() calls in some browsers — that's what made USE NOW report
-    // "Failed to fetch"). Fix: route every image through authedFetch and
-    // hand <img> a blob: URL. The promise is shared so the click handlers
-    // reuse the same blob without a second network round-trip.
-    const imgEl = el("img", { alt: lv.name, draggable: "true" });
-    let blobPromise = null;
-    function getBlob() {
-      if (!blobPromise) {
-        blobPromise = authedFetch(imgUrl).then(r => {
-          if (!r.ok) throw new Error(`HTTP ${r.status}`);
-          return r.blob();
-        });
-      }
-      return blobPromise;
-    }
-    getBlob().then(blob => {
-      imgEl.src = URL.createObjectURL(blob);
-    }).catch(err => {
-      const msg = (err && (err.message || err.name)) || String(err);
-      console.error(`[demo] level image failed: ${lv.image}`, err);
-      imgEl.alt = `${lv.name} — ${msg}`;
-    });
+    // Images are served same-origin from GitHub Pages, so <img src> works
+    // directly. Click handlers fetch() the same URL on demand to materialise
+    // a Blob for clipboard.write / setPendingImage.
+    const imgEl = el("img", { src: imgUrl, alt: lv.name, draggable: "true" });
     const frame = el("div", { class: "level-image-frame" }, imgEl);
     card.appendChild(frame);
 
@@ -470,10 +452,16 @@ function renderLevels(levelsData) {
     const copyBtn = el("button", { class: "btn primary small" }, "▸ COPY IMAGE");
     const useBtn = el("button", { class: "btn ghost small" }, "USE NOW");
 
+    async function fetchLevelBlob() {
+      const r = await fetch(imgUrl);
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      return await r.blob();
+    }
+
     copyBtn.addEventListener("click", async () => {
       let blob = null;
       try {
-        blob = await getBlob();
+        blob = await fetchLevelBlob();
         const type = blob.type || "image/png";
         if (typeof ClipboardItem === "undefined" || !navigator.clipboard?.write) {
           // Old browser. Fall through to USE-NOW behaviour transparently.
@@ -506,7 +494,7 @@ function renderLevels(levelsData) {
     useBtn.addEventListener("click", async () => {
       // Stage the level image directly into the composer attachment slot.
       try {
-        const blob = await getBlob();
+        const blob = await fetchLevelBlob();
         const file = new File([blob], lv.image, { type: blob.type || "image/png" });
         setPendingImage(file);
         els.levelsDialog.close();
