@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>DEOBFUSCATING · DEFENDER MODE</title>
+  <script>
+    // Pre-paint theme application — runs synchronously before stylesheet parse,
+    // so the correct CSS variables are bound before first paint. Default: dark.
+    (function () {
+      try {
+        var t = localStorage.getItem("deobfuscating.theme");
+        if (t !== "light" && t !== "dark") t = "dark";
+        document.documentElement.dataset.theme = t;
+      } catch (e) {
+        document.documentElement.dataset.theme = "dark";
+      }
+    })();
+  </script>
+  <link rel="stylesheet" href="./game.css" />
+</head>
+<body class="crt">
+  <div id="auth-gate" class="auth-gate">
+    <form id="auth-form" class="auth-gate-card" autocomplete="off">
+      <h2>▸ ACCESS</h2>
+      <p class="muted">Enter the demo password to continue.</p>
+      <input id="auth-password" type="password" autocomplete="current-password" autofocus />
+      <div class="auth-gate-actions">
+        <button type="submit" class="btn primary">▸ ENTER</button>
+      </div>
+      <p id="auth-error" class="auth-error" hidden></p>
+    </form>
+  </div>
+
+  <div class="scanlines"></div>
+  <div class="vignette"></div>
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-marker">▸</span>
+      <span class="name">DEOBFUSCATING</span>
+      <span class="subbrand">DEFENDER&nbsp;MODE</span>
+      <span class="model-pin" id="model-pin">⌁ MODEL: <span id="model-pin-name">—</span></span>
+    </div>
+    <div class="controls">
+      <button id="btn-levels" class="btn primary big">▸ LEVELS</button>
+      <button id="btn-intro" class="btn ghost" title="Open intro / threat model">▸ INTRO</button>
+      <button id="btn-edit-prompt" class="btn ghost" title="Edit system prompt">SYSTEM PROMPT</button>
+      <button id="btn-inspect" class="btn ghost" title="Toggle inspector (Ctrl+I)">INSPECTOR</button>
+      <button id="btn-theme" class="btn ghost" title="Toggle dark/light theme">◐ THEME</button>
+      <button id="btn-new-chat" class="btn primary">NEW CHAT</button>
+    </div>
+  </header>
+
+  <main id="messages" class="messages"></main>
+
+  <footer class="composer">
+    <div class="composer-box">
+      <div id="attachment-preview" class="attachment-preview" hidden>
+        <img id="attachment-thumb" alt="pending attachment" />
+        <div class="attachment-info">
+          <span id="attachment-name" class="attachment-name"></span>
+          <span id="attachment-size" class="attachment-size"></span>
+        </div>
+        <button id="btn-remove-attachment" class="btn ghost small" title="Remove attachment">×</button>
+      </div>
+      <textarea id="user-input" placeholder="▶ TYPE TO PROBE THE AGENT · PASTE THE EVIDENCE IMAGE WITH CTRL/CMD+V · CTRL/CMD+ENTER TO SEND" rows="2"></textarea>
+      <div class="composer-bar">
+        <div class="composer-bar-left">
+          <input id="file-input" type="file" accept="image/png,image/jpeg,image/jpg,image/webp" hidden />
+          <button id="btn-attach" class="btn icon-btn" title="Attach image" aria-label="Attach image">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+          </button>
+          <span class="hint" id="compose-hint">READY</span>
+        </div>
+        <div class="composer-bar-right">
+          <button id="btn-stop" class="btn danger small" hidden>STOP</button>
+          <button id="btn-send" class="btn primary" title="Send (Ctrl/Cmd+Enter)">SEND ▸</button>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <aside id="inspector" class="inspector" hidden>
+    <div class="inspector-head">
+      <span>raw messages[]</span>
+      <div class="inspector-actions">
+        <button id="btn-copy-transcript" class="btn ghost small">copy</button>
+        <button id="btn-close-inspector" class="btn ghost small">close</button>
+      </div>
+    </div>
+    <pre id="inspector-body"></pre>
+  </aside>
+
+  <dialog id="prompt-dialog" class="dialog">
+    <form method="dialog" class="dialog-form">
+      <h2>SYSTEM&nbsp;PROMPT</h2>
+      <p class="muted">Takes effect on the next message. Resets per new chat.</p>
+      <textarea id="prompt-textarea" rows="14"></textarea>
+      <div class="dialog-actions">
+        <button value="cancel" class="btn ghost">cancel</button>
+        <button value="save" id="btn-save-prompt" class="btn primary">save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="intro-dialog" class="dialog intro-dialog">
+    <div class="dialog-head">
+      <div class="dialog-head-left">
+        <h2 class="marquee-text">▸ WELCOME&nbsp;TO&nbsp;THE&nbsp;OBFUSCATED-ATTACK&nbsp;DEMO ◂</h2>
+        <span class="muted small">Find the hidden trigger. Find the target action. Just by chatting.</span>
+      </div>
+      <button id="btn-close-intro" class="btn ghost small">close</button>
+    </div>
+    <div class="intro-body">
+      <section class="intro-section intro-section-lead">
+        <p>This is a hands-on demo of <strong>obfuscated, image-borne prompt-injection attacks</strong> against vision-language agents. Each image you'll probe in <strong>LEVELS</strong> hides a trigger condition and a target action that the agent will perform when the trigger is met.</p>
+        <p>The bullets below describe the <strong>real-world threat model</strong> the attack is designed for, plus the simplifications we made in this demo for testability.</p>
+      </section>
+
+      <section class="intro-section">
+        <h3>▶ REAL-WORLD THREAT MODEL</h3>
+        <ul>
+          <li>The image is shared by <strong>email</strong>, <strong>Discord</strong>, or <strong>the web</strong>.</li>
+          <li>The agent reads it through one of those sources, reacts normally, and stays in the session context.</li>
+          <li>Only later — under certain conditions — does the prompt injection / target action fire.</li>
+          <li>The image is not detectable by humans or other LLMs. The attack fires for specific models under specific conditions.</li>
+        </ul>
+      </section>
+
+      <section class="intro-section">
+        <h3>▶ RESULT</h3>
+        <p>An attack that is <strong>undetectable</strong>, <strong>untraceable</strong>, and — when traced — <strong>difficult to interpret</strong> (<em>obfuscated</em>).</p>
+      </section>
+
+      <section class="intro-section">
+        <h3>▶ ASSUMPTIONS IN THIS DEMO</h3>
+        <ul>
+          <li>You already know the image is an adversarial attack — but you don't know <strong>what</strong> trigger it watches for or <strong>what</strong> it does.</li>
+          <li>You already know the target model.</li>
+          <li>The image is copied by the user (not delivered through email / untrusted content). Shouldn't affect ASR — just for ease of testing.</li>
+        </ul>
+      </section>
+
+      <section class="intro-section">
+        <h3>▶ THE AGENT (MOCK)</h3>
+        <p>You are chatting with a <strong>mock agent</strong>. It looks and behaves like a tool-using assistant, but every tool is stubbed — nothing actually runs, sends, deletes, or leaves the box. Safe to probe. It's a mock agent wired to <code>bash</code>, <code>send_email</code>, <code>transfer_money</code> and other tools.</p>
+      </section>
+
+      <section class="intro-section">
+        <h3>▶ CAVEATS</h3>
+        <p>The attack may be unstable / brittle:</p>
+        <ul>
+          <li><strong>False positives</strong> — target action fires without the trigger.</li>
+          <li><strong>False negatives</strong> — target action doesn't fire even with the trigger.</li>
+        </ul>
+        <p class="muted">Patchable with better optimization or data. Or — left as-is, the brittleness might be a feature, not a bug.</p>
+      </section>
+
+      <section class="intro-section intro-section-cta">
+        <h3>▶ GO PLAY</h3>
+        <p>Pick an image from <strong>LEVELS</strong>, paste it into the chat, and probe the model to figure out the <strong>condition</strong> and the <strong>target action</strong>.</p>
+      </section>
+    </div>
+    <div class="intro-actions">
+      <button id="btn-start" class="btn primary big">▸ START</button>
+    </div>
+  </dialog>
+
+  <dialog id="levels-dialog" class="dialog levels-dialog">
+    <div class="dialog-head">
+      <div class="dialog-head-left">
+        <h2 class="marquee-text">▸ EVIDENCE&nbsp;LOCKER ◂</h2>
+        <span class="muted small" id="levels-intro">Choose a tile, copy it, paste into chat.</span>
+      </div>
+      <button id="btn-close-levels" class="btn ghost small">close</button>
+    </div>
+    <div id="levels-grid" class="levels-grid"></div>
+  </dialog>
+
+  <script src="./game.js"></script>
+</body>
+</html>
