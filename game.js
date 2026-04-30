@@ -454,8 +454,10 @@ function renderLevels(levelsData) {
     }
     getBlob().then(blob => {
       imgEl.src = URL.createObjectURL(blob);
-    }).catch(() => {
-      imgEl.alt = `${lv.name} (failed to load)`;
+    }).catch(err => {
+      const msg = (err && (err.message || err.name)) || String(err);
+      console.error(`[demo] level image failed: ${lv.image}`, err);
+      imgEl.alt = `${lv.name} — ${msg}`;
     });
     const frame = el("div", { class: "level-image-frame" }, imgEl);
     card.appendChild(frame);
