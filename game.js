@@ -434,12 +434,30 @@ function renderLevels(levelsData) {
     const imgUrl = buildImageUrl(lv.image);
     const card = el("div", { class: "level-card" });
 
-    // No badge overlay — it would sit on top of the evidence image, and the
-    // category labels (control/trained/wildcard) themselves leak hints about
-    // which stage is the trained one.
-    const frame = el("div", { class: "level-image-frame" },
-      el("img", { src: imgUrl, alt: lv.name, draggable: "true" }),
-    );
+    // The <img> tag itself can't send ngrok-skip-browser-warning, so a direct
+    // src=imgUrl gets the ngrok ERR_NGROK_6024 interstitial HTML instead of
+    // PNG bytes (broken image, and the cached failure also poisons later
+    // fetch() calls in some browsers — that's what made USE NOW report
+    // "Failed to fetch"). Fix: route every image through authedFetch and
+    // hand <img> a blob: URL. The promise is shared so the click handlers
+    // reuse the same blob without a second network round-trip.
+    const imgEl = el("img", { alt: lv.name, draggable: "true" });
+    let blobPromise = null;
+    function getBlob() {
+      if (!blobPromise) {
+        blobPromise = authedFetch(imgUrl).then(r => {
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          return r.blob();
+        });
+      }
+      return blobPromise;
+    }
+    getBlob().then(blob => {
+      imgEl.src = URL.createObjectURL(blob);
+    }).catch(() => {
+      imgEl.alt = `${lv.name} (failed to load)`;
+    });
+    const frame = el("div", { class: "level-image-frame" }, imgEl);
     card.appendChild(frame);
 
     const metaChildren = [el("div", { class: "level-name" }, lv.name)];
@@ -453,8 +471,7 @@ function renderLevels(levelsData) {
     copyBtn.addEventListener("click", async () => {
       let blob = null;
       try {
-        const resp = await authedFetch(imgUrl);
-        blob = await resp.blob();
+        blob = await getBlob();
         const type = blob.type || "image/png";
         if (typeof ClipboardItem === "undefined" || !navigator.clipboard?.write) {
           // Old browser. Fall through to USE-NOW behaviour transparently.
@@ -487,8 +504,7 @@ function renderLevels(levelsData) {
     useBtn.addEventListener("click", async () => {
       // Stage the level image directly into the composer attachment slot.
       try {
-        const r = await authedFetch(imgUrl);
-        const blob = await r.blob();
+        const blob = await getBlob();
         const file = new File([blob], lv.image, { type: blob.type || "image/png" });
         setPendingImage(file);
         els.levelsDialog.close();
