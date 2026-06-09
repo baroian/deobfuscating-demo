@@ -46,7 +46,7 @@
     </div>
     <div class="controls">
       <button id="btn-levels" class="btn primary big">▸ IMAGES</button>
-      <button id="btn-testing" class="btn primary big" title="Testing images — 3 new adversarial patches (A/B/C)">▸ TESTING IMAGES</button>
+      <button id="btn-testing" class="btn ghost" title="Testing images — quick-access tiles (A/B/C), no game hints">▸ testing</button>
       <button id="btn-intro" class="btn ghost" title="Open intro / threat model">▸ INTRO</button>
       <button id="btn-edit-prompt" class="btn ghost" title="Edit system prompt">SYSTEM PROMPT</button>
       <button id="btn-inspect" class="btn ghost" title="Toggle inspector (Ctrl+I)">INSPECTOR</button>
@@ -174,7 +174,7 @@
     <div class="dialog-head">
       <div class="dialog-head-left">
         <h2 class="marquee-text">▸ IMAGES ◂</h2>
-        <span class="muted small" id="levels-intro">Pick an image, copy it, paste into chat to try it.</span>
+        <span class="muted small" id="levels-intro">Guessing game: pick an image, probe the model, and try to guess its hidden behaviour. Stuck? Press GET TIPS for progressively more specific hints.</span>
       </div>
       <button id="btn-close-levels" class="btn ghost small">close</button>
     </div>
@@ -184,14 +184,14 @@
   <dialog id="testing-dialog" class="dialog levels-dialog">
     <div class="dialog-head">
       <div class="dialog-head-left">
-        <h2 class="marquee-text">▸ TESTING IMAGES ◂</h2>
-        <span class="muted small" id="testing-intro">New adversarial patches (A · B · C). Copy a tile, paste into chat, then send the trigger phrase to try it.</span>
+        <h2 class="marquee-text">▸ TESTING ◂</h2>
+        <span class="muted small" id="testing-intro">Quick-access patches (A · B · C) — triggers and actions spelled out, no game hints. Copy a tile, paste into chat, then send the trigger phrase to try it.</span>
       </div>
       <button id="btn-close-testing" class="btn ghost small">close</button>
     </div>
     <div id="testing-grid" class="levels-grid"></div>
   </dialog>
 
-  <script src="./game.js?v=20260609-testing1"></script>
+  <script src="./game.js?v=20260609-gettips1"></script>
 </body>
 </html>
