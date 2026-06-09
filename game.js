@@ -5,7 +5,7 @@
 //   • image <img src=...> URLs use ?p=<password> query (img tags can't
 //     send custom headers); the backend accepts either form
 
-const BACKEND_URL = "https://thirstily-grieving-evidence.ngrok-free.dev";
+const BACKEND_URL = "http://127.0.0.1:8764";
 const AUTH_KEY = "deobfuscating.demoAuth";
 
 function getAuthPassword() {
@@ -25,9 +25,10 @@ function authedFetch(path, options = {}) {
   if (pw && !headers.has("Authorization")) {
     headers.set("Authorization", "Basic " + btoa(":" + pw));
   }
-  // Skip ngrok free-tier browser interstitial (ERR_NGROK_6024) so the
-  // cross-origin fetch sees the real backend response, not the warning page.
-  headers.set("ngrok-skip-browser-warning", "true");
+  // LOCAL-ONLY: no ngrok tunnel in front of the backend, so we drop the
+  // ngrok-skip-browser-warning header entirely. Keeping it would make the
+  // cross-origin request non-simple and force a CORS preflight against the
+  // local proxy. Backend CORS is configured via DEMO_ALLOWED_ORIGINS.
   return fetch(url, { ...options, headers });
 }
 
@@ -746,7 +747,18 @@ async function bootstrap() {
     }
   }
 
-  // Try cached password first.
+  // LOCAL-ONLY: the local proxy runs with DEMO_AUTH off, so /api/config
+  // returns 200 regardless of password. Probe with an empty password first;
+  // if the backend accepts it, skip the gate entirely for a frictionless
+  // local demo. (On an auth-enabled backend this 401s and we fall through.)
+  try {
+    if (await tryPassword("")) {
+      gate.hidden = true;
+      return init();
+    }
+  } catch (e) { /* fall through to gate */ }
+
+  // Try cached password next.
   const cached = getAuthPassword();
   if (cached) {
     try {
