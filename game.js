@@ -5,7 +5,12 @@
 //   • image <img src=...> URLs use ?p=<password> query (img tags can't
 //     send custom headers); the backend accepts either form
 
-const BACKEND_URL = "http://127.0.0.1:8764";
+// Auto-detect deployment: on github.io, route every fetch through the ngrok
+// tunnel that fronts the backend on privsec0:8764. On any other host
+// (local http://127.0.0.1:8764/ui/), stay same-origin.
+const BACKEND_URL = (typeof location !== "undefined" && location.hostname === "baroian.github.io")
+  ? "https://thirstily-grieving-evidence.ngrok-free.dev"
+  : "";
 const AUTH_KEY = "deobfuscating.demoAuth";
 
 function getAuthPassword() {
@@ -25,10 +30,13 @@ function authedFetch(path, options = {}) {
   if (pw && !headers.has("Authorization")) {
     headers.set("Authorization", "Basic " + btoa(":" + pw));
   }
-  // LOCAL-ONLY: no ngrok tunnel in front of the backend, so we drop the
-  // ngrok-skip-browser-warning header entirely. Keeping it would make the
-  // cross-origin request non-simple and force a CORS preflight against the
-  // local proxy. Backend CORS is configured via DEMO_ALLOWED_ORIGINS.
+  // When cross-origin via the ngrok tunnel, bypass ngrok-free's HTML
+  // interstitial for fetch requests. Same-origin (local /ui/) doesn't need it
+  // but the backend CORS allow-list explicitly whitelists the header so it's
+  // safe to send unconditionally.
+  if (BACKEND_URL) {
+    headers.set("ngrok-skip-browser-warning", "1");
+  }
   return fetch(url, { ...options, headers });
 }
 
